@@ -279,10 +279,7 @@ const StockChart: React.FC = () => {
               showCrosshair ? (
                 <CustomCursor
                   showCrosshair={showCrosshair}
-                  crosshairValues={crosshairValues || undefined}
-                  points={[]}
-                  width={0}
-                  height={0}
+                  crosshairValues={crosshairValues}
                 />
               ) : (
                 false
@@ -381,8 +378,7 @@ const StockChart: React.FC = () => {
           {chartStyle === "candlestick" && (
             <Bar
               dataKey="high"
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              shape={(props: any) =>
+              shape={(props) =>
                 renderCandlestick({ ...props, visibleData, stockData })
               }
               isAnimationActive={false}
@@ -393,8 +389,7 @@ const StockChart: React.FC = () => {
           {chartStyle === "ohlc" && (
             <Bar
               dataKey="high"
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              shape={(props: any) =>
+              shape={(props) =>
                 renderOHLC({ ...props, visibleData, stockData })
               }
               isAnimationActive={false}
@@ -545,11 +540,9 @@ const StockChart: React.FC = () => {
 
         if (Array.isArray(data)) {
           // データが配列の場合
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           company = data.find((stock: any) => stock.Code === "130A0");
         } else if (data.stocks && Array.isArray(data.stocks)) {
           // data.stocksが配列の場合
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           company = data.stocks.find((stock: any) => stock.Code === "130A0");
         } else {
           // その他の構造の場合
@@ -574,7 +567,6 @@ const StockChart: React.FC = () => {
 
         // 財務データを日付順にソート
         const sortedStatements = financialData.statements.sort(
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (a: any, b: any) =>
             new Date(b.DisclosedDate).getTime() -
             new Date(a.DisclosedDate).getTime()
@@ -1058,6 +1050,85 @@ const StockChart: React.FC = () => {
         <KeyboardShortcutsHelp
           onClose={() => setShowKeyboardShortcuts(false)}
         />
+      )}
+      {/* 会社情報セクション */}
+      {companyInfo && (
+        <div className="mb-6 p-4 border border-gray-200 rounded-lg">
+          <h2 className="text-2xl font-bold mb-2">{companyInfo.CompanyName}</h2>
+          <p className="text-gray-600 mb-1">{companyInfo.CompanyNameEnglish}</p>
+          <div className="grid grid-cols-3 gap-4 mt-4">
+            <div>
+              <p className="text-sm text-gray-500">証券コード</p>
+              <p className="font-medium">{companyInfo.Code}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">業種</p>
+              <p className="font-medium">{companyInfo.Sector33CodeName}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">市場</p>
+              <p className="font-medium">{companyInfo.MarketCodeName}</p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => setShowFinancials(!showFinancials)}
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+          >
+            {showFinancials ? "業績を隠す" : "業績を表示"}
+          </button>
+        </div>
+      )}
+      {/* 業績表示セクション */}
+      {showFinancials && (
+        <div className="mb-6 p-4 border border-gray-200 rounded-lg">
+          <h3 className="text-xl font-bold mb-4">業績推移</h3>
+          <div className="overflow-x-auto">
+            <table className="min-w-full bg-white border border-gray-200">
+              <thead>
+                <tr className="bg-gray-100">
+                  <th className="py-2 px-3 border text-left">開示日</th>
+                  <th className="py-2 px-3 border text-left">種類</th>
+                  <th className="py-2 px-3 border text-right">売上高</th>
+                  <th className="py-2 px-3 border text-right">営業利益</th>
+                  <th className="py-2 px-3 border text-right">経常利益</th>
+                  <th className="py-2 px-3 border text-right">当期純利益</th>
+                  <th className="py-2 px-3 border text-right">EPS</th>
+                </tr>
+              </thead>
+              <tbody>
+                {financialData.map((statement, index) => (
+                  <tr
+                    key={index}
+                    className={index % 2 === 0 ? "bg-gray-50" : "bg-white"}
+                  >
+                    <td className="py-2 px-3 border">
+                      {formatDate(statement.DisclosedDate)}
+                    </td>
+                    <td className="py-2 px-3 border">
+                      {getDocumentTypeJP(statement.TypeOfDocument)}
+                    </td>
+                    <td className="py-2 px-3 border text-right">
+                      {formatAmount(statement.NetSales)}
+                    </td>
+                    <td className="py-2 px-3 border text-right">
+                      {formatAmount(statement.OperatingProfit)}
+                    </td>
+                    <td className="py-2 px-3 border text-right">
+                      {formatAmount(statement.OrdinaryProfit)}
+                    </td>
+                    <td className="py-2 px-3 border text-right">
+                      {formatAmount(statement.Profit)}
+                    </td>
+                    <td className="py-2 px-3 border text-right">
+                      {statement.EarningsPerShare || "-"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       )}
     </div>
   );

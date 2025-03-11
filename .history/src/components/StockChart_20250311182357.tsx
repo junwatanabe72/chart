@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import {
   XAxis,
   YAxis,
@@ -30,29 +30,6 @@ import {
 import RSIChart from "./chart/RSIChart";
 import MACDChart from "./chart/MACDChart";
 import KeyboardShortcutsHelp from "./chart/KeyboardShortcutsHelp";
-
-// StockInfoコンポーネントから必要な部分をインポート
-import StockInfo from "./StockInfo";
-
-// 会社情報と財務データの型定義を追加
-interface CompanyInfo {
-  Code: string;
-  CompanyName: string;
-  CompanyNameEnglish: string;
-  Sector33CodeName: string;
-  MarketCodeName: string;
-}
-
-interface FinancialStatement {
-  DisclosedDate: string;
-  TypeOfDocument: string;
-  TypeOfCurrentPeriod: string;
-  NetSales: string;
-  OperatingProfit: string;
-  OrdinaryProfit: string;
-  Profit: string;
-  EarningsPerShare: string;
-}
 
 const StockChart: React.FC = () => {
   // カスタムフックを使用してデータとチャート操作を管理
@@ -280,9 +257,6 @@ const StockChart: React.FC = () => {
                 <CustomCursor
                   showCrosshair={showCrosshair}
                   crosshairValues={crosshairValues || undefined}
-                  points={[]}
-                  width={0}
-                  height={0}
                 />
               ) : (
                 false
@@ -381,8 +355,7 @@ const StockChart: React.FC = () => {
           {chartStyle === "candlestick" && (
             <Bar
               dataKey="high"
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              shape={(props: any) =>
+              shape={(props) =>
                 renderCandlestick({ ...props, visibleData, stockData })
               }
               isAnimationActive={false}
@@ -393,8 +366,7 @@ const StockChart: React.FC = () => {
           {chartStyle === "ohlc" && (
             <Bar
               dataKey="high"
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              shape={(props: any) =>
+              shape={(props) =>
                 renderOHLC({ ...props, visibleData, stockData })
               }
               isAnimationActive={false}
@@ -524,104 +496,6 @@ const StockChart: React.FC = () => {
     );
   };
 
-  // 会社情報と財務データの状態を追加
-  const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null);
-  const [financialData, setFinancialData] = useState<FinancialStatement[]>([]);
-  const [showFinancials, setShowFinancials] = useState(false);
-
-  // 会社情報と財務データを取得するuseEffect
-  useEffect(() => {
-    const fetchCompanyInfo = async () => {
-      try {
-        // 会社情報を取得
-        const response = await fetch("/specifiedStockList.json");
-        if (!response.ok) {
-          throw new Error("会社情報の取得に失敗しました");
-        }
-        const data = await response.json();
-
-        // データ構造を確認して適切に処理
-        let company = null;
-
-        if (Array.isArray(data)) {
-          // データが配列の場合
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          company = data.find((stock: any) => stock.Code === "130A0");
-        } else if (data.stocks && Array.isArray(data.stocks)) {
-          // data.stocksが配列の場合
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          company = data.stocks.find((stock: any) => stock.Code === "130A0");
-        } else {
-          // その他の構造の場合
-          console.error("Unexpected data structure:", data);
-          throw new Error("データ構造が予期しない形式です");
-        }
-
-        if (company) {
-          setCompanyInfo(company);
-        } else {
-          throw new Error("指定された会社が見つかりません");
-        }
-
-        // 財務データを取得
-        const financialResponse = await fetch(
-          "/specifiedStockFinancialData/130A0.json"
-        );
-        if (!financialResponse.ok) {
-          throw new Error("財務データの取得に失敗しました");
-        }
-        const financialData = await financialResponse.json();
-
-        // 財務データを日付順にソート
-        const sortedStatements = financialData.statements.sort(
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (a: any, b: any) =>
-            new Date(b.DisclosedDate).getTime() -
-            new Date(a.DisclosedDate).getTime()
-        );
-
-        setFinancialData(sortedStatements);
-      } catch (err) {
-        console.error("データ取得エラー:", err);
-      }
-    };
-
-    fetchCompanyInfo();
-  }, []);
-
-  // 金額をフォーマットする関数
-  const formatAmount = (amount: string) => {
-    if (!amount) return "-";
-    const num = parseInt(amount, 10);
-    if (isNaN(num)) return "-";
-
-    // 百万円単位で表示
-    return `${(num / 1000000).toFixed(2)}百万円`;
-  };
-
-  // 日付をフォーマットする関数
-  const formatDate = (dateString: string) => {
-    if (!dateString) return "-";
-    const date = new Date(dateString);
-    return date.toLocaleDateString("ja-JP", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    });
-  };
-
-  // 財務書類の種類を日本語に変換
-  const getDocumentTypeJP = (type: string) => {
-    const types: { [key: string]: string } = {
-      FYFinancialStatements_NonConsolidated_JP: "通期決算",
-      "1QFinancialStatements_NonConsolidated_JP": "第1四半期決算",
-      "2QFinancialStatements_NonConsolidated_JP": "第2四半期決算",
-      "3QFinancialStatements_NonConsolidated_JP": "第3四半期決算",
-      EarnForecastRevision: "業績予想修正",
-    };
-    return types[type] || type;
-  };
-
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">読み込み中...</div>
@@ -646,7 +520,10 @@ const StockChart: React.FC = () => {
 
   return (
     <div className="p-4 bg-white rounded shadow">
-      　<StockInfo />
+      <h2 className="text-xl font-bold mb-4">
+        Stock {stockData[0]?.code || "130A0"} チャート
+      </h2>
+
       <div className="mb-4 flex justify-between items-center">
         <div className="text-sm text-gray-500">
           <p>
@@ -670,6 +547,7 @@ const StockChart: React.FC = () => {
           </button>
         </div>
       </div>
+
       {/* チャートスタイル切替コントロール */}
       <div className="mb-4 p-3 bg-gray-50 rounded border border-gray-200">
         <div className="flex flex-wrap items-center gap-3">
@@ -716,6 +594,7 @@ const StockChart: React.FC = () => {
           </button>
         </div>
       </div>
+
       {/* 描画ツールコントロール */}
       <div className="mb-4 p-3 bg-gray-50 rounded border border-gray-200">
         <div className="flex flex-wrap items-center gap-3 mb-2">
@@ -761,6 +640,7 @@ const StockChart: React.FC = () => {
           </label>
         </div>
       </div>
+
       {/* テクニカル指標の切替コントロール */}
       <div className="mb-4 p-3 bg-gray-50 rounded border border-gray-200">
         <div className="flex flex-wrap items-center gap-3 mb-2">
@@ -961,6 +841,7 @@ const StockChart: React.FC = () => {
           )}
         </div>
       </div>
+
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4 mb-6">
         <div className="bg-gray-100 p-3 rounded">
@@ -976,6 +857,7 @@ const StockChart: React.FC = () => {
           <p className="text-lg font-bold">{stats.avg}</p>
         </div>
       </div>
+
       {/* メインチャート */}
       <div
         className="h-64 mb-6 cursor-grab active:cursor-grabbing relative"
@@ -995,8 +877,10 @@ const StockChart: React.FC = () => {
           {renderDrawingLines()}
         </svg>
       </div>
+
       {/* 出来高チャート */}
       <VolumeChart />
+
       {/* RSIとMACDチャート */}
       <RSIChart
         visibleData={visibleData}
@@ -1004,14 +888,17 @@ const StockChart: React.FC = () => {
         xAxisDomain={xAxisDomain}
         indicators={indicators}
       />
+
       <MACDChart
         visibleData={visibleData}
         macdParams={macdParams}
         xAxisDomain={xAxisDomain}
         indicators={indicators}
       />
+
       {/* ナビゲーションミニマップ */}
       <NavigationMinimap />
+
       {/* 最新価格情報 */}
       {stockData.length > 0 && (
         <div className="mt-6 p-4 border border-gray-200 rounded">
@@ -1044,6 +931,7 @@ const StockChart: React.FC = () => {
           </div>
         </div>
       )}
+
       <div className="mt-4 text-sm text-gray-500">
         <p>
           凡例：{" "}
@@ -1053,6 +941,7 @@ const StockChart: React.FC = () => {
           陰線（下降）
         </p>
       </div>
+
       {/* キーボードショートカットヘルプ */}
       {showKeyboardShortcuts && (
         <KeyboardShortcutsHelp

@@ -33,6 +33,7 @@ import KeyboardShortcutsHelp from "./chart/KeyboardShortcutsHelp";
 
 // StockInfoコンポーネントから必要な部分をインポート
 import StockInfo from "./StockInfo";
+import ChartSettingsDrawer from "./ChartSettingsDrawer";
 
 // 会社情報と財務データの型定義を追加
 interface CompanyInfo {
@@ -279,10 +280,7 @@ const StockChart: React.FC = () => {
               showCrosshair ? (
                 <CustomCursor
                   showCrosshair={showCrosshair}
-                  crosshairValues={crosshairValues || undefined}
-                  points={[]}
-                  width={0}
-                  height={0}
+                  crosshairValues={crosshairValues}
                 />
               ) : (
                 false
@@ -381,8 +379,7 @@ const StockChart: React.FC = () => {
           {chartStyle === "candlestick" && (
             <Bar
               dataKey="high"
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              shape={(props: any) =>
+              shape={(props) =>
                 renderCandlestick({ ...props, visibleData, stockData })
               }
               isAnimationActive={false}
@@ -393,8 +390,7 @@ const StockChart: React.FC = () => {
           {chartStyle === "ohlc" && (
             <Bar
               dataKey="high"
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              shape={(props: any) =>
+              shape={(props) =>
                 renderOHLC({ ...props, visibleData, stockData })
               }
               isAnimationActive={false}
@@ -545,11 +541,9 @@ const StockChart: React.FC = () => {
 
         if (Array.isArray(data)) {
           // データが配列の場合
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           company = data.find((stock: any) => stock.Code === "130A0");
         } else if (data.stocks && Array.isArray(data.stocks)) {
           // data.stocksが配列の場合
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           company = data.stocks.find((stock: any) => stock.Code === "130A0");
         } else {
           // その他の構造の場合
@@ -574,7 +568,6 @@ const StockChart: React.FC = () => {
 
         // 財務データを日付順にソート
         const sortedStatements = financialData.statements.sort(
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (a: any, b: any) =>
             new Date(b.DisclosedDate).getTime() -
             new Date(a.DisclosedDate).getTime()
@@ -622,6 +615,9 @@ const StockChart: React.FC = () => {
     return types[type] || type;
   };
 
+  // ドロワーの状態
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">読み込み中...</div>
@@ -646,321 +642,103 @@ const StockChart: React.FC = () => {
 
   return (
     <div className="p-4 bg-white rounded shadow">
-      　<StockInfo />
-      <div className="mb-4 flex justify-between items-center">
-        <div className="text-sm text-gray-500">
-          <p>
-            操作方法: <span className="font-medium">マウスホイール</span>
-            でズーム、<span className="font-medium">ドラッグ</span>で移動
-          </p>
-        </div>
-        <div className="flex space-x-2">
-          <button
-            onClick={() => setShowKeyboardShortcuts(true)}
-            className="px-3 py-1 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded text-sm flex items-center"
-          >
-            <span className="mr-1">⌨️</span>
-            <span>ショートカット</span>
-          </button>
-          <button
-            onClick={resetZoom}
-            className="px-3 py-1 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded text-sm"
-          >
-            全体表示に戻す
-          </button>
-        </div>
+      {/* ヘッダー部分 */}
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-bold">
+          Stock {stockData[0]?.code || "130A0"} チャート
+        </h2>
+
+        {/* 設定ボタン */}
+        <button
+          onClick={() => setIsDrawerOpen(true)}
+          className="px-3 py-1 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded text-sm flex items-center"
+        >
+          <span className="mr-1">⚙️</span>
+          <span>チャート設定</span>
+        </button>
       </div>
-      {/* チャートスタイル切替コントロール */}
-      <div className="mb-4 p-3 bg-gray-50 rounded border border-gray-200">
-        <div className="flex flex-wrap items-center gap-3">
-          <span className="text-sm font-medium">チャートスタイル:</span>
-          <button
-            onClick={() => setChartStyle("candlestick")}
-            className={`px-3 py-1 text-sm rounded ${
-              chartStyle === "candlestick"
-                ? "bg-blue-500 text-white"
-                : "bg-gray-200 text-gray-800"
-            }`}
-          >
-            ローソク足
-          </button>
-          <button
-            onClick={() => setChartStyle("ohlc")}
-            className={`px-3 py-1 text-sm rounded ${
-              chartStyle === "ohlc"
-                ? "bg-blue-500 text-white"
-                : "bg-gray-200 text-gray-800"
-            }`}
-          >
-            OHLC
-          </button>
-          <button
-            onClick={() => setChartStyle("line")}
-            className={`px-3 py-1 text-sm rounded ${
-              chartStyle === "line"
-                ? "bg-blue-500 text-white"
-                : "bg-gray-200 text-gray-800"
-            }`}
-          >
-            ライン
-          </button>
-          <button
-            onClick={() => setChartStyle("area")}
-            className={`px-3 py-1 text-sm rounded ${
-              chartStyle === "area"
-                ? "bg-blue-500 text-white"
-                : "bg-gray-200 text-gray-800"
-            }`}
-          >
-            エリア
-          </button>
-        </div>
-      </div>
-      {/* 描画ツールコントロール */}
-      <div className="mb-4 p-3 bg-gray-50 rounded border border-gray-200">
-        <div className="flex flex-wrap items-center gap-3 mb-2">
-          <span className="text-sm font-medium">描画ツール:</span>
-          <button
-            onClick={() => toggleDrawingMode("trendline")}
-            className={`px-3 py-1 text-sm rounded ${
-              drawingMode === "trendline"
-                ? "bg-blue-500 text-white"
-                : "bg-gray-200 text-gray-800"
-            }`}
-          >
-            トレンドライン
-          </button>
-          <button
-            onClick={() => toggleDrawingMode("horizontalline")}
-            className={`px-3 py-1 text-sm rounded ${
-              drawingMode === "horizontalline"
-                ? "bg-blue-500 text-white"
-                : "bg-gray-200 text-gray-800"
-            }`}
-          >
-            水平線
-          </button>
-          {drawingLines.length > 0 && (
-            <button
-              onClick={() => setDrawingLines([])}
-              className="px-3 py-1 bg-red-100 hover:bg-red-200 text-red-800 rounded text-sm"
-            >
-              すべて削除
-            </button>
-          )}
 
-          {/* クロスヘアー切替 */}
-          <label className="inline-flex items-center ml-4">
-            <input
-              type="checkbox"
-              checked={showCrosshair}
-              onChange={toggleCrosshair}
-              className="form-checkbox h-4 w-4 text-blue-600"
-            />
-            <span className="ml-1 text-sm">十字カーソル</span>
-          </label>
-        </div>
-      </div>
-      {/* テクニカル指標の切替コントロール */}
-      <div className="mb-4 p-3 bg-gray-50 rounded border border-gray-200">
-        <div className="flex flex-wrap items-center gap-3 mb-2">
-          <span className="text-sm font-medium">移動平均線:</span>
-          <label className="inline-flex items-center">
-            <input
-              type="checkbox"
-              checked={indicators.ma20}
-              onChange={() => toggleIndicator("ma20")}
-              className="form-checkbox h-4 w-4 text-blue-600"
-            />
-            <span className="ml-1 text-sm" style={{ color: "#FF5722" }}>
-              MA(20)
-            </span>
-          </label>
-          <label className="inline-flex items-center">
-            <input
-              type="checkbox"
-              checked={indicators.ma50}
-              onChange={() => toggleIndicator("ma50")}
-              className="form-checkbox h-4 w-4 text-blue-600"
-            />
-            <span className="ml-1 text-sm" style={{ color: "#2196F3" }}>
-              MA(50)
-            </span>
-          </label>
-          <label className="inline-flex items-center">
-            <input
-              type="checkbox"
-              checked={indicators.ma75}
-              onChange={() => toggleIndicator("ma75")}
-              className="form-checkbox h-4 w-4 text-blue-600"
-            />
-            <span className="ml-1 text-sm" style={{ color: "#4CAF50" }}>
-              MA(75)
-            </span>
-          </label>
-          <label className="inline-flex items-center">
-            <input
-              type="checkbox"
-              checked={indicators.ma100}
-              onChange={() => toggleIndicator("ma100")}
-              className="form-checkbox h-4 w-4 text-blue-600"
-            />
-            <span className="ml-1 text-sm" style={{ color: "#9C27B0" }}>
-              MA(100)
-            </span>
-          </label>
-          <label className="inline-flex items-center">
-            <input
-              type="checkbox"
-              checked={indicators.ma200}
-              onChange={() => toggleIndicator("ma200")}
-              className="form-checkbox h-4 w-4 text-blue-600"
-            />
-            <span className="ml-1 text-sm" style={{ color: "#E91E63" }}>
-              MA(200)
-            </span>
-          </label>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3 mb-2">
-          <label className="inline-flex items-center">
-            <input
-              type="checkbox"
-              checked={indicators.bollingerBands}
-              onChange={() => toggleIndicator("bollingerBands")}
-              className="form-checkbox h-4 w-4 text-blue-600"
-            />
-            <span className="ml-1 text-sm font-medium">ボリンジャーバンド</span>
-          </label>
-
-          {indicators.bollingerBands && (
-            <>
-              <div className="flex items-center ml-4">
-                <span className="text-sm mr-2">期間:</span>
-                <select
-                  value={bollingerPeriod}
-                  onChange={(e) => setBollingerPeriod(Number(e.target.value))}
-                  className="form-select text-sm border border-gray-300 rounded p-1"
-                >
-                  <option value="10">10</option>
-                  <option value="20">20</option>
-                  <option value="25">25</option>
-                  <option value="50">50</option>
-                </select>
-              </div>
-              <div className="flex items-center">
-                <span className="text-sm mr-2">標準偏差:</span>
-                <select
-                  value={bollingerStdDev}
-                  onChange={(e) => setBollingerStdDev(Number(e.target.value))}
-                  className="form-select text-sm border border-gray-300 rounded p-1"
-                >
-                  <option value="1">1</option>
-                  <option value="2">2</option>
-                  <option value="2.5">2.5</option>
-                  <option value="3">3</option>
-                </select>
-              </div>
-            </>
-          )}
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3">
-          {/* RSIコントロール */}
-          <label className="inline-flex items-center">
-            <input
-              type="checkbox"
-              checked={indicators.rsi}
-              onChange={() => toggleIndicator("rsi")}
-              className="form-checkbox h-4 w-4 text-blue-600"
-            />
-            <span className="ml-1 text-sm font-medium">RSI</span>
-          </label>
-
-          {indicators.rsi && (
-            <div className="flex items-center ml-2">
-              <span className="text-sm mr-2">期間:</span>
-              <select
-                value={rsiPeriod}
-                onChange={(e) => setRsiPeriod(Number(e.target.value))}
-                className="form-select text-sm border border-gray-300 rounded p-1"
-              >
-                <option value="5">5</option>
-                <option value="9">9</option>
-                <option value="14">14</option>
-                <option value="21">21</option>
-              </select>
+      {/* 会社情報セクション */}
+      {companyInfo && (
+        <div className="mb-6 p-4 border border-gray-200 rounded-lg">
+          <h2 className="text-2xl font-bold mb-2">{companyInfo.CompanyName}</h2>
+          <p className="text-gray-600 mb-1">{companyInfo.CompanyNameEnglish}</p>
+          <div className="grid grid-cols-3 gap-4 mt-4">
+            <div>
+              <p className="text-sm text-gray-500">証券コード</p>
+              <p className="font-medium">{companyInfo.Code}</p>
             </div>
-          )}
-
-          {/* MACDコントロール */}
-          <label className="inline-flex items-center ml-4">
-            <input
-              type="checkbox"
-              checked={indicators.macd}
-              onChange={() => toggleIndicator("macd")}
-              className="form-checkbox h-4 w-4 text-blue-600"
-            />
-            <span className="ml-1 text-sm font-medium">MACD</span>
-          </label>
-
-          {indicators.macd && (
-            <div className="flex items-center ml-2 space-x-2">
-              <div className="flex items-center">
-                <span className="text-sm mr-1">Fast:</span>
-                <select
-                  value={macdParams.fastPeriod}
-                  onChange={(e) =>
-                    setMacdParams({
-                      ...macdParams,
-                      fastPeriod: Number(e.target.value),
-                    })
-                  }
-                  className="form-select text-sm border border-gray-300 rounded p-1 w-12"
-                >
-                  <option value="8">8</option>
-                  <option value="12">12</option>
-                  <option value="16">16</option>
-                </select>
-              </div>
-              <div className="flex items-center">
-                <span className="text-sm mr-1">Slow:</span>
-                <select
-                  value={macdParams.slowPeriod}
-                  onChange={(e) =>
-                    setMacdParams({
-                      ...macdParams,
-                      slowPeriod: Number(e.target.value),
-                    })
-                  }
-                  className="form-select text-sm border border-gray-300 rounded p-1 w-12"
-                >
-                  <option value="21">21</option>
-                  <option value="26">26</option>
-                  <option value="30">30</option>
-                </select>
-              </div>
-              <div className="flex items-center">
-                <span className="text-sm mr-1">Signal:</span>
-                <select
-                  value={macdParams.signalPeriod}
-                  onChange={(e) =>
-                    setMacdParams({
-                      ...macdParams,
-                      signalPeriod: Number(e.target.value),
-                    })
-                  }
-                  className="form-select text-sm border border-gray-300 rounded p-1 w-12"
-                >
-                  <option value="7">7</option>
-                  <option value="9">9</option>
-                  <option value="12">12</option>
-                </select>
-              </div>
+            <div>
+              <p className="text-sm text-gray-500">業種</p>
+              <p className="font-medium">{companyInfo.Sector33CodeName}</p>
             </div>
-          )}
+            <div>
+              <p className="text-sm text-gray-500">市場</p>
+              <p className="font-medium">{companyInfo.MarketCodeName}</p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => setShowFinancials(!showFinancials)}
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+          >
+            {showFinancials ? "業績を隠す" : "業績を表示"}
+          </button>
         </div>
-      </div>
+      )}
+
+      {/* 業績表示セクション */}
+      {showFinancials && (
+        <div className="mb-6 p-4 border border-gray-200 rounded-lg">
+          <h3 className="text-xl font-bold mb-4">業績推移</h3>
+          <div className="overflow-x-auto">
+            <table className="min-w-full bg-white border border-gray-200">
+              <thead>
+                <tr className="bg-gray-100">
+                  <th className="py-2 px-3 border text-left">開示日</th>
+                  <th className="py-2 px-3 border text-left">種類</th>
+                  <th className="py-2 px-3 border text-right">売上高</th>
+                  <th className="py-2 px-3 border text-right">営業利益</th>
+                  <th className="py-2 px-3 border text-right">経常利益</th>
+                  <th className="py-2 px-3 border text-right">当期純利益</th>
+                  <th className="py-2 px-3 border text-right">EPS</th>
+                </tr>
+              </thead>
+              <tbody>
+                {financialData.map((statement, index) => (
+                  <tr
+                    key={index}
+                    className={index % 2 === 0 ? "bg-gray-50" : "bg-white"}
+                  >
+                    <td className="py-2 px-3 border">
+                      {formatDate(statement.DisclosedDate)}
+                    </td>
+                    <td className="py-2 px-3 border">
+                      {getDocumentTypeJP(statement.TypeOfDocument)}
+                    </td>
+                    <td className="py-2 px-3 border text-right">
+                      {formatAmount(statement.NetSales)}
+                    </td>
+                    <td className="py-2 px-3 border text-right">
+                      {formatAmount(statement.OperatingProfit)}
+                    </td>
+                    <td className="py-2 px-3 border text-right">
+                      {formatAmount(statement.OrdinaryProfit)}
+                    </td>
+                    <td className="py-2 px-3 border text-right">
+                      {formatAmount(statement.Profit)}
+                    </td>
+                    <td className="py-2 px-3 border text-right">
+                      {statement.EarningsPerShare || "-"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4 mb-6">
         <div className="bg-gray-100 p-3 rounded">
@@ -976,6 +754,7 @@ const StockChart: React.FC = () => {
           <p className="text-lg font-bold">{stats.avg}</p>
         </div>
       </div>
+
       {/* メインチャート */}
       <div
         className="h-64 mb-6 cursor-grab active:cursor-grabbing relative"
@@ -995,8 +774,10 @@ const StockChart: React.FC = () => {
           {renderDrawingLines()}
         </svg>
       </div>
+
       {/* 出来高チャート */}
       <VolumeChart />
+
       {/* RSIとMACDチャート */}
       <RSIChart
         visibleData={visibleData}
@@ -1004,14 +785,17 @@ const StockChart: React.FC = () => {
         xAxisDomain={xAxisDomain}
         indicators={indicators}
       />
+
       <MACDChart
         visibleData={visibleData}
         macdParams={macdParams}
         xAxisDomain={xAxisDomain}
         indicators={indicators}
       />
+
       {/* ナビゲーションミニマップ */}
       <NavigationMinimap />
+
       {/* 最新価格情報 */}
       {stockData.length > 0 && (
         <div className="mt-6 p-4 border border-gray-200 rounded">
@@ -1044,6 +828,7 @@ const StockChart: React.FC = () => {
           </div>
         </div>
       )}
+
       <div className="mt-4 text-sm text-gray-500">
         <p>
           凡例：{" "}
@@ -1053,12 +838,39 @@ const StockChart: React.FC = () => {
           陰線（下降）
         </p>
       </div>
+
       {/* キーボードショートカットヘルプ */}
       {showKeyboardShortcuts && (
         <KeyboardShortcutsHelp
           onClose={() => setShowKeyboardShortcuts(false)}
         />
       )}
+
+      {/* 設定ドロワー */}
+      <ChartSettingsDrawer
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        chartStyle={chartStyle}
+        setChartStyle={setChartStyle}
+        drawingMode={drawingMode}
+        toggleDrawingMode={toggleDrawingMode}
+        drawingLines={drawingLines}
+        setDrawingLines={setDrawingLines}
+        showCrosshair={showCrosshair}
+        toggleCrosshair={toggleCrosshair}
+        indicators={indicators}
+        toggleIndicator={toggleIndicator}
+        bollingerPeriod={bollingerPeriod}
+        setBollingerPeriod={setBollingerPeriod}
+        bollingerStdDev={bollingerStdDev}
+        setBollingerStdDev={setBollingerStdDev}
+        rsiPeriod={rsiPeriod}
+        setRsiPeriod={setRsiPeriod}
+        macdParams={macdParams}
+        setMacdParams={setMacdParams}
+        resetZoom={resetZoom}
+        setShowKeyboardShortcuts={setShowKeyboardShortcuts}
+      />
     </div>
   );
 };

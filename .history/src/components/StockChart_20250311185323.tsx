@@ -279,10 +279,7 @@ const StockChart: React.FC = () => {
               showCrosshair ? (
                 <CustomCursor
                   showCrosshair={showCrosshair}
-                  crosshairValues={crosshairValues || undefined}
-                  points={[]}
-                  width={0}
-                  height={0}
+                  crosshairValues={crosshairValues}
                 />
               ) : (
                 false
@@ -381,8 +378,7 @@ const StockChart: React.FC = () => {
           {chartStyle === "candlestick" && (
             <Bar
               dataKey="high"
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              shape={(props: any) =>
+              shape={(props) =>
                 renderCandlestick({ ...props, visibleData, stockData })
               }
               isAnimationActive={false}
@@ -393,8 +389,7 @@ const StockChart: React.FC = () => {
           {chartStyle === "ohlc" && (
             <Bar
               dataKey="high"
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              shape={(props: any) =>
+              shape={(props) =>
                 renderOHLC({ ...props, visibleData, stockData })
               }
               isAnimationActive={false}
@@ -545,11 +540,9 @@ const StockChart: React.FC = () => {
 
         if (Array.isArray(data)) {
           // データが配列の場合
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           company = data.find((stock: any) => stock.Code === "130A0");
         } else if (data.stocks && Array.isArray(data.stocks)) {
           // data.stocksが配列の場合
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           company = data.stocks.find((stock: any) => stock.Code === "130A0");
         } else {
           // その他の構造の場合
@@ -574,7 +567,6 @@ const StockChart: React.FC = () => {
 
         // 財務データを日付順にソート
         const sortedStatements = financialData.statements.sort(
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (a: any, b: any) =>
             new Date(b.DisclosedDate).getTime() -
             new Date(a.DisclosedDate).getTime()

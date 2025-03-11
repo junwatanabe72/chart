@@ -574,7 +574,6 @@ const StockChart: React.FC = () => {
 
         // 財務データを日付順にソート
         const sortedStatements = financialData.statements.sort(
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (a: any, b: any) =>
             new Date(b.DisclosedDate).getTime() -
             new Date(a.DisclosedDate).getTime()

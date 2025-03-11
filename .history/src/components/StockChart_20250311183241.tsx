@@ -31,9 +31,6 @@ import RSIChart from "./chart/RSIChart";
 import MACDChart from "./chart/MACDChart";
 import KeyboardShortcutsHelp from "./chart/KeyboardShortcutsHelp";
 
-// StockInfoコンポーネントから必要な部分をインポート
-import StockInfo from "./StockInfo";
-
 // 会社情報と財務データの型定義を追加
 interface CompanyInfo {
   Code: string;
@@ -279,10 +276,7 @@ const StockChart: React.FC = () => {
               showCrosshair ? (
                 <CustomCursor
                   showCrosshair={showCrosshair}
-                  crosshairValues={crosshairValues || undefined}
-                  points={[]}
-                  width={0}
-                  height={0}
+                  crosshairValues={crosshairValues}
                 />
               ) : (
                 false
@@ -381,8 +375,7 @@ const StockChart: React.FC = () => {
           {chartStyle === "candlestick" && (
             <Bar
               dataKey="high"
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              shape={(props: any) =>
+              shape={(props) =>
                 renderCandlestick({ ...props, visibleData, stockData })
               }
               isAnimationActive={false}
@@ -393,8 +386,7 @@ const StockChart: React.FC = () => {
           {chartStyle === "ohlc" && (
             <Bar
               dataKey="high"
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              shape={(props: any) =>
+              shape={(props) =>
                 renderOHLC({ ...props, visibleData, stockData })
               }
               isAnimationActive={false}
@@ -540,27 +532,12 @@ const StockChart: React.FC = () => {
         }
         const data = await response.json();
 
-        // データ構造を確認して適切に処理
-        let company = null;
-
-        if (Array.isArray(data)) {
-          // データが配列の場合
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          company = data.find((stock: any) => stock.Code === "130A0");
-        } else if (data.stocks && Array.isArray(data.stocks)) {
-          // data.stocksが配列の場合
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          company = data.stocks.find((stock: any) => stock.Code === "130A0");
-        } else {
-          // その他の構造の場合
-          console.error("Unexpected data structure:", data);
-          throw new Error("データ構造が予期しない形式です");
-        }
-
+        // 130A0のデータを検索
+        const company = data.stocks.find(
+          (stock: any) => stock.Code === "130A0"
+        );
         if (company) {
           setCompanyInfo(company);
-        } else {
-          throw new Error("指定された会社が見つかりません");
         }
 
         // 財務データを取得
@@ -574,7 +551,6 @@ const StockChart: React.FC = () => {
 
         // 財務データを日付順にソート
         const sortedStatements = financialData.statements.sort(
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (a: any, b: any) =>
             new Date(b.DisclosedDate).getTime() -
             new Date(a.DisclosedDate).getTime()
@@ -646,7 +622,10 @@ const StockChart: React.FC = () => {
 
   return (
     <div className="p-4 bg-white rounded shadow">
-      　<StockInfo />
+      <h2 className="text-xl font-bold mb-4">
+        Stock {stockData[0]?.code || "130A0"} チャート
+      </h2>
+
       <div className="mb-4 flex justify-between items-center">
         <div className="text-sm text-gray-500">
           <p>
@@ -670,6 +649,7 @@ const StockChart: React.FC = () => {
           </button>
         </div>
       </div>
+
       {/* チャートスタイル切替コントロール */}
       <div className="mb-4 p-3 bg-gray-50 rounded border border-gray-200">
         <div className="flex flex-wrap items-center gap-3">
@@ -716,6 +696,7 @@ const StockChart: React.FC = () => {
           </button>
         </div>
       </div>
+
       {/* 描画ツールコントロール */}
       <div className="mb-4 p-3 bg-gray-50 rounded border border-gray-200">
         <div className="flex flex-wrap items-center gap-3 mb-2">
@@ -761,6 +742,7 @@ const StockChart: React.FC = () => {
           </label>
         </div>
       </div>
+
       {/* テクニカル指標の切替コントロール */}
       <div className="mb-4 p-3 bg-gray-50 rounded border border-gray-200">
         <div className="flex flex-wrap items-center gap-3 mb-2">
@@ -961,6 +943,7 @@ const StockChart: React.FC = () => {
           )}
         </div>
       </div>
+
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4 mb-6">
         <div className="bg-gray-100 p-3 rounded">
@@ -976,6 +959,7 @@ const StockChart: React.FC = () => {
           <p className="text-lg font-bold">{stats.avg}</p>
         </div>
       </div>
+
       {/* メインチャート */}
       <div
         className="h-64 mb-6 cursor-grab active:cursor-grabbing relative"
@@ -995,8 +979,10 @@ const StockChart: React.FC = () => {
           {renderDrawingLines()}
         </svg>
       </div>
+
       {/* 出来高チャート */}
       <VolumeChart />
+
       {/* RSIとMACDチャート */}
       <RSIChart
         visibleData={visibleData}
@@ -1004,14 +990,17 @@ const StockChart: React.FC = () => {
         xAxisDomain={xAxisDomain}
         indicators={indicators}
       />
+
       <MACDChart
         visibleData={visibleData}
         macdParams={macdParams}
         xAxisDomain={xAxisDomain}
         indicators={indicators}
       />
+
       {/* ナビゲーションミニマップ */}
       <NavigationMinimap />
+
       {/* 最新価格情報 */}
       {stockData.length > 0 && (
         <div className="mt-6 p-4 border border-gray-200 rounded">
@@ -1044,6 +1033,7 @@ const StockChart: React.FC = () => {
           </div>
         </div>
       )}
+
       <div className="mt-4 text-sm text-gray-500">
         <p>
           凡例：{" "}
@@ -1053,11 +1043,93 @@ const StockChart: React.FC = () => {
           陰線（下降）
         </p>
       </div>
+
       {/* キーボードショートカットヘルプ */}
       {showKeyboardShortcuts && (
         <KeyboardShortcutsHelp
           onClose={() => setShowKeyboardShortcuts(false)}
         />
+      )}
+
+      {/* 会社情報セクション */}
+      {companyInfo && (
+        <div className="mb-6 p-4 border border-gray-200 rounded-lg">
+          <h2 className="text-2xl font-bold mb-2">{companyInfo.CompanyName}</h2>
+          <p className="text-gray-600 mb-1">{companyInfo.CompanyNameEnglish}</p>
+          <div className="grid grid-cols-3 gap-4 mt-4">
+            <div>
+              <p className="text-sm text-gray-500">証券コード</p>
+              <p className="font-medium">{companyInfo.Code}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">業種</p>
+              <p className="font-medium">{companyInfo.Sector33CodeName}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">市場</p>
+              <p className="font-medium">{companyInfo.MarketCodeName}</p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => setShowFinancials(!showFinancials)}
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+          >
+            {showFinancials ? "業績を隠す" : "業績を表示"}
+          </button>
+        </div>
+      )}
+
+      {/* 業績表示セクション */}
+      {showFinancials && (
+        <div className="mb-6 p-4 border border-gray-200 rounded-lg">
+          <h3 className="text-xl font-bold mb-4">業績推移</h3>
+          <div className="overflow-x-auto">
+            <table className="min-w-full bg-white border border-gray-200">
+              <thead>
+                <tr className="bg-gray-100">
+                  <th className="py-2 px-3 border text-left">開示日</th>
+                  <th className="py-2 px-3 border text-left">種類</th>
+                  <th className="py-2 px-3 border text-right">売上高</th>
+                  <th className="py-2 px-3 border text-right">営業利益</th>
+                  <th className="py-2 px-3 border text-right">経常利益</th>
+                  <th className="py-2 px-3 border text-right">当期純利益</th>
+                  <th className="py-2 px-3 border text-right">EPS</th>
+                </tr>
+              </thead>
+              <tbody>
+                {financialData.map((statement, index) => (
+                  <tr
+                    key={index}
+                    className={index % 2 === 0 ? "bg-gray-50" : "bg-white"}
+                  >
+                    <td className="py-2 px-3 border">
+                      {formatDate(statement.DisclosedDate)}
+                    </td>
+                    <td className="py-2 px-3 border">
+                      {getDocumentTypeJP(statement.TypeOfDocument)}
+                    </td>
+                    <td className="py-2 px-3 border text-right">
+                      {formatAmount(statement.NetSales)}
+                    </td>
+                    <td className="py-2 px-3 border text-right">
+                      {formatAmount(statement.OperatingProfit)}
+                    </td>
+                    <td className="py-2 px-3 border text-right">
+                      {formatAmount(statement.OrdinaryProfit)}
+                    </td>
+                    <td className="py-2 px-3 border text-right">
+                      {formatAmount(statement.Profit)}
+                    </td>
+                    <td className="py-2 px-3 border text-right">
+                      {statement.EarningsPerShare || "-"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       )}
     </div>
   );
